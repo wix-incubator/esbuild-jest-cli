@@ -1,24 +1,57 @@
-import { build } from 'esbuild';
-import esbuildJest from './plugin.js';
+import path from 'path';
 
-build({
-    bundle: true,
-    splitting: true,
-    metafile: true,
-    format: 'esm',
-    entryPoints: [
-        '__fixtures__/simple-project/globalSetup.js',
-        '__fixtures__/simple-project/globalTeardown.js',
-        '__fixtures__/simple-project/src/entry1.test.js',
-        '__fixtures__/simple-project/src/entry2.test.js',
-    ],
-    outdir: '__fixtures__/simple-project/dist',
-    plugins: [esbuildJest({
+import { SearchSource } from '@jest/core';
+import { build } from 'esbuild';
+import { readConfig } from 'jest-config';
+import RuntimeCJS from 'jest-runtime';
+
+import esbuildJest from './index.mjs';
+
+/** @type {import('jest-runtime')} */
+const Runtime = RuntimeCJS.default || RuntimeCJS;
+
+async function main(argv = {}) {
+    const {
+        rootDir = process.cwd(),
+        outputDirectory = path.join(rootDir, 'dist'),
+    } = argv;
+
+    const jestArgv = {}; // TODO: think about supporting jest arg overrides
+
+    const fullConfig = await readConfig(jestArgv, rootDir, false);
+    const { globalConfig, projectConfig } = fullConfig;
+    const testContext = await Runtime.createContext(projectConfig, { maxWorkers: 1, watch: false, watchman: false });
+    const searchSource = new SearchSource(testContext);
+    const { tests } = await searchSource.getTestPaths(globalConfig, []);
+
+    const entryPoints = [
+        globalConfig.globalSetup,
+        ...(projectConfig.setupFiles || []),
+        ...tests.map(test => test.path),
+        ...(projectConfig.setupFilesAfterEnv || []),
+        globalConfig.globalTeardown,
+    ];
+
+    console.log(entryPoints);
+
+    const buildResult = await build({
+        bundle: true,
+        splitting: true,
+        metafile: true,
+        format: 'esm',
+        entryPoints: entryPoints.filter(Boolean),
+        outdir: outputDirectory,
+        plugins: [esbuildJest({
+            projectConfig,
+        })],
+    });
+}
+
+try {
+    await main({
         rootDir: '__fixtures__/simple-project',
-    })],
-}).then((r) => {
-    console.log(r);
-}, e => {
+    });
+} catch (e) {
     console.error(`${e}`);
     process.exit(1);
-});
+}
