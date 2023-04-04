@@ -1,4 +1,6 @@
 function hello() { return 'hello'; }
 function world() { return 'world'; }
 
-module.exports = { hello, world };
+function globalize(s) { return 'global ' + s; }
+
+module.exports = { hello, world, globalize };

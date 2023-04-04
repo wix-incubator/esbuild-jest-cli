@@ -1,1 +1,3 @@
-module.exports = () => console.log('Global setup');
+const { globalize } = require('./src/utils');
+
+module.exports = () => console.log(globalize('setup'));
