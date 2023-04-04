@@ -1,19 +1,20 @@
 import { readFile } from 'fs/promises';
-import { readConfig } from 'jest-config';
-import { createScriptTransformer } from '@jest/transform';
+import importFrom from 'import-from';
 
 export default (options = {}) => {
+  const { argv = {}, rootDir = process.cwd() } = options;
+  let { projectConfig } = options;
+
   return {
     name: 'jest',
     async setup(build) {
-      const argv = options.argv || {};
-      let projectConfig = options.projectConfig;
       if (!projectConfig) {
-        const rootDir = options.rootDir || process.cwd();
+        const { readConfig } = importFrom(rootDir, 'jest-config');
         const fullConfig = await readConfig(argv, rootDir, false);
         projectConfig = fullConfig.projectConfig;
       }
 
+      const { createScriptTransformer } = importFrom(rootDir, '@jest/transform');
       const transformer = await createScriptTransformer(projectConfig);
 
       build.onLoad({ filter: /.*/ }, async (args) => {

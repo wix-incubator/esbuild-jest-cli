@@ -1,14 +1,9 @@
 import path from 'path';
 
-import { SearchSource } from '@jest/core';
 import { build } from 'esbuild';
-import { readConfig } from 'jest-config';
-import RuntimeCJS from 'jest-runtime';
+import importFrom from 'import-from';
 
 import esbuildJest from './index.mjs';
-
-/** @type {import('jest-runtime')} */
-const Runtime = RuntimeCJS.default || RuntimeCJS;
 
 async function main(argv = {}) {
     const {
@@ -18,9 +13,12 @@ async function main(argv = {}) {
 
     const jestArgv = {}; // TODO: think about supporting jest arg overrides
 
+    const { readConfig } = importFrom(rootDir, 'jest-config');
     const fullConfig = await readConfig(jestArgv, rootDir, false);
     const { globalConfig, projectConfig } = fullConfig;
+    const { default: Runtime } = importFrom(rootDir, 'jest-runtime');
     const testContext = await Runtime.createContext(projectConfig, { maxWorkers: 1, watch: false, watchman: false });
+    const { SearchSource } = importFrom(rootDir, '@jest/core');
     const searchSource = new SearchSource(testContext);
     const { tests } = await searchSource.getTestPaths(globalConfig, []);
 
@@ -31,8 +29,6 @@ async function main(argv = {}) {
         ...(projectConfig.setupFilesAfterEnv || []),
         globalConfig.globalTeardown,
     ];
-
-    console.log(entryPoints);
 
     const buildResult = await build({
         bundle: true,
@@ -45,6 +41,8 @@ async function main(argv = {}) {
             projectConfig,
         })],
     });
+
+    console.log(buildResult);
 }
 
 try {
