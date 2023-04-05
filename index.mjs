@@ -1,54 +1,48 @@
-import { readFile, writeFile } from 'node:fs/promises';
-import { basename, join, relative, posix } from 'node:path';
+import "./patch-jest.mjs";
+import { cosmiconfig } from 'cosmiconfig';
+import { build as esbuild } from 'esbuild';
 import importFrom from 'import-from';
 
-export default (options = {}) => {
-  const { argv = {}, rootDir = process.cwd() } = options;
-  let { configPath, projectConfig } = options;
+import esbuildJest from './plugin.mjs';
 
-  return {
-    name: 'jest',
-    async setup(build) {
-      const outdir = build.initialOptions.outdir;
+const explorer = cosmiconfig('esbuild-jest');
 
-      if (!projectConfig) {
-        const { readConfig } = importFrom(rootDir, 'jest-config');
-        const fullConfig = await readConfig(argv, rootDir, false);
-        configPath = fullConfig.configPath;
-        projectConfig = fullConfig.projectConfig;
-      }
+export async function build() {
+  const rootDir = process.cwd();
 
-      const { createScriptTransformer } = importFrom(rootDir, '@jest/transform');
-      const transformer = await createScriptTransformer(projectConfig);
+  const esbuildBaseConfig = await explorer.search(rootDir);
 
-      build.onLoad({ filter: /.*/ }, async (args) => {
-        const fileContent = await readFile(args.path, 'utf8');
-        const { code } =  transformer.transformSource(args.path, fileContent, {});
-        return { contents: code, loader: 'js' };
-      });
+  const { buildArgv } = importFrom(rootDir, 'jest-cli/run');
+  const jestArgv = await buildArgv();
 
-      build.onEnd(async (result) => {
-        await writeFile(join(outdir, 'jest.config.json'), JSON.stringify({
-          ...projectConfig,
-          cacheDirectory: undefined,
-          cwd: undefined,
-          globalSetup: mjsify(rootDir, projectConfig.globalSetup),
-          globalTeardown: mjsify(rootDir, projectConfig.globalTeardown),
-          id: undefined,
-          moduleNameMapper: undefined,
-          rootDir: undefined,
-          roots: undefined,
-          runner: undefined,
-          testEnvironment: undefined, // TODO: implement properly
-          testMatch: projectConfig.testMatch.map((testMatch) => mjsify(rootDir, testMatch)),
-          testRunner: undefined, // TODO: implement properly
-          transform: {},
-        }, null, 2));
-      });
-    },
-  };
-};
+  const { readConfig } = importFrom(rootDir, 'jest-config');
+  const fullConfig = await readConfig(jestArgv, rootDir, false);
+  const { configPath, globalConfig, projectConfig } = fullConfig;
 
-function mjsify(rootDir, filePath) {
-  return posix.join('<rootDir>', relative(rootDir, filePath).replace(/\.[^.]+$/, '.mjs'));
+  const { default: Runtime } = importFrom(rootDir, 'jest-runtime');
+  const testContext = await Runtime.createContext(projectConfig, { maxWorkers: 1, watch: false, watchman: false });
+  const { SearchSource } = importFrom(rootDir, '@jest/core');
+  const searchSource = new SearchSource(testContext);
+  const { tests } = await searchSource.getTestPaths(globalConfig, []);
+
+  const entryPoints = [
+    globalConfig.globalSetup,
+    ...(projectConfig.setupFiles || []),
+    ...tests.map(test => test.path),
+    ...(projectConfig.setupFilesAfterEnv || []),
+    globalConfig.globalTeardown,
+  ];
+
+  const buildResult = await esbuild({
+    ...(esbuildBaseConfig && esbuildBaseConfig.config),
+    entryPoints: entryPoints.filter(Boolean),
+    plugins: [esbuildJest({
+      argv: jestArgv,
+      configPath,
+      rootDir,
+      projectConfig,
+    })],
+  });
+
+  return buildResult;
 }

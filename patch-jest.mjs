@@ -3,7 +3,11 @@ import resolveFrom from 'resolve-from';
 import importFrom from "import-from";
 
 export default function patchJest(rootDir) {
-    const manifestPath = resolveFrom(rootDir, 'jest-cli/package.json');
+    const manifestPath = resolveFrom.silent(rootDir, 'jest-cli/package.json');
+    if (!manifestPath) {
+      return;
+    }
+
     const manifest = importFrom(rootDir, 'jest-cli/package.json');
     if (!manifest.exports['./run']) {
         manifest.exports['./run'] = './build/run.js';
@@ -11,3 +15,5 @@ export default function patchJest(rootDir) {
         writeFileSync(manifestPath, newManifestRaw);
     }
 }
+
+patchJest(process.cwd());
