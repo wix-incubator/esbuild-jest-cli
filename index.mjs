@@ -36,10 +36,9 @@ export async function build() {
     ...(esbuildBaseConfig && esbuildBaseConfig.config),
     entryPoints: entryPoints.filter(Boolean),
     plugins: [esbuildJest({
-      argv: jestArgv,
-      configPath,
       rootDir,
       projectConfig,
+      tests: tests.map(t => t.path),
     })],
   });
 

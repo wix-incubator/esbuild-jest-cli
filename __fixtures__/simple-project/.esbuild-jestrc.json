@@ -4,8 +4,5 @@
   "sourcemap": true,
   "metafile": true,
   "format": "esm",
-  "outExtension": {
-    ".js": ".mjs"
-  },
   "outdir": ".bundle"
 }
