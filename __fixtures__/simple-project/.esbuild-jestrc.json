@@ -1,8 +1,13 @@
 {
-  "bundle": true,
-  "splitting": true,
-  "sourcemap": true,
-  "metafile": true,
-  "format": "esm",
-  "outdir": ".bundle"
+  "esbuild": {
+    "bundle": true,
+    "splitting": true,
+    "sourcemap": true,
+    "metafile": true,
+    "format": "esm",
+    "outdir": ".bundle"
+  },
+  "package": {
+    "name": "custom-name"
+  }
 }

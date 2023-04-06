@@ -33,12 +33,13 @@ export async function build() {
   ];
 
   const buildResult = await esbuild({
-    ...(esbuildBaseConfig && esbuildBaseConfig.config),
+    ...(esbuildBaseConfig && esbuildBaseConfig.config.esbuild),
     entryPoints: entryPoints.filter(Boolean),
     plugins: [esbuildJest({
       rootDir,
       projectConfig,
       tests: tests.map(t => t.path),
+      package: esbuildBaseConfig && esbuildBaseConfig.config.package,
     })],
   });
 

@@ -4,7 +4,7 @@ import importFrom from 'import-from';
 import {convertPathToImport} from "./utils/resolve-module.mjs";
 import {mapSourceToOutputFiles} from "./utils/map-inputs-outputs.mjs";
 
-export default ({ projectConfig, rootDir, tests }) => {
+export default ({ package: packageOverride, projectConfig, rootDir, tests }) => {
   return {
     name: 'jest',
     async setup(build) {
@@ -58,15 +58,17 @@ export default ({ projectConfig, rootDir, tests }) => {
 
       build.onEnd(async (result) => {
         await writeFile(join(outdir, 'package.json'), JSON.stringify({
-          name: 'bundled-module',
+          name: 'bundled-tests',
+          version: '0.0.0',
           type: 'module',
           private: true,
           scripts: {
             test: 'NODE_NO_WARNINGS=1 NODE_OPTIONS="--experimental-vm-modules" jest',
           },
           dependencies: {
-            'jest': '^29.0.0',
+            'jest': importFrom(rootDir, 'jest/package.json').version,
           },
+          ...packageOverride,
         }, null, 2));
       });
     },
