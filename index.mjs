@@ -1,9 +1,8 @@
-import "./patch-jest.mjs";
 import { cosmiconfig } from 'cosmiconfig';
 import { build as esbuild } from 'esbuild';
-import importFrom from 'import-from';
 
 import esbuildJest from './plugin.mjs';
+import {importViaChain} from "./utils/resolve-via-chain.mjs";
 
 const explorer = cosmiconfig('esbuild-jest');
 
@@ -12,16 +11,16 @@ export async function build() {
 
   const esbuildBaseConfig = await explorer.search(rootDir);
 
-  const { buildArgv } = importFrom(rootDir, 'jest-cli/run');
+  const { buildArgv } = importViaChain(rootDir, ['jest'], 'jest-cli/run');
   const jestArgv = await buildArgv();
 
-  const { readConfig } = importFrom(rootDir, 'jest-config');
+  const { readConfig } = importViaChain(rootDir, ['jest'], 'jest-config');
   const fullConfig = await readConfig(jestArgv, rootDir, false);
   const { configPath, globalConfig, projectConfig } = fullConfig;
 
-  const { default: Runtime } = importFrom(rootDir, 'jest-runtime');
+  const { default: Runtime } = importViaChain(rootDir, ['jest', '@jest/core'], 'jest-runtime');
   const testContext = await Runtime.createContext(projectConfig, { maxWorkers: 1, watch: false, watchman: false });
-  const { SearchSource } = importFrom(rootDir, '@jest/core');
+  const { SearchSource } = importViaChain(rootDir, ['jest'], '@jest/core');
   const searchSource = new SearchSource(testContext);
   const { tests } = await searchSource.getTestPaths(globalConfig, []);
 

@@ -4,6 +4,8 @@
   "private": true,
   "main": "index.js",
   "scripts": {
+    "prepare": "esbuild-jest-patch",
+    "build": "esbuild-jest",
     "test": "jest"
   },
   "devDependencies": {

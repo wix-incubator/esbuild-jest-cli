@@ -5,12 +5,14 @@
   "type": "module",
   "module": "index.mjs",
   "bin": {
-    "esbuild-jest": "build.mjs"
+    "esbuild-jest": "build.mjs",
+    "esbuild-jest-patch": "utils/patch-jest.mjs"
   },
   "files": [
     "build.mjs",
     "index.mjs",
-    "patch-jest.mjs",
+    "utils/patch-jest.mjs",
+    "utils/resolve-module.mjs",
     "plugin.mjs"
   ],
   "scripts": {
