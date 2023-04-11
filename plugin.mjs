@@ -4,19 +4,22 @@ import importFrom from 'import-from';
 import {convertPathToImport} from "./utils/resolve-module.mjs";
 import {mapSourceToOutputFiles} from "./utils/map-inputs-outputs.mjs";
 
-export default ({ package: packageOverride, projectConfig, rootDir, tests }) => {
+export default ({ package: packageOverride, globalConfig, projectConfig, tests }) => {
   return {
     name: 'jest',
     async setup(build) {
+      const rootDir = globalConfig.rootDir;
       const outdir = build.initialOptions.outdir;
+      const external = build.initialOptions.external || [];
 
       const { createScriptTransformer } = importFrom(rootDir, '@jest/transform');
       const transformer = await createScriptTransformer(projectConfig);
 
       build.onLoad({ filter: /.*/ }, async (args) => {
         const fileContent = await readFile(args.path, 'utf8');
-        const { code } =  transformer.transformSource(args.path, fileContent, {});
-        return { contents: code, loader: 'js' };
+        const loader = args.path.endsWith('.json') ? 'json' : 'js';
+        const { code: contents } =  transformer.transformSource(args.path, fileContent, {});
+        return { contents, loader };
       });
 
       build.onEnd(async (result) => {
@@ -37,6 +40,8 @@ export default ({ package: packageOverride, projectConfig, rootDir, tests }) => 
         }
 
         const flattenedConfig = {
+          maxWorkers: globalConfig.maxWorkers,
+
           ...projectConfig,
           cacheDirectory: undefined,
           cwd: undefined,
@@ -59,6 +64,11 @@ export default ({ package: packageOverride, projectConfig, rootDir, tests }) => 
       });
 
       build.onEnd(async (result) => {
+        const externalDependencies = Object.fromEntries(['jest', ...external].map(dep => {
+          const packageJson = importFrom.silent(rootDir, dep + '/package.json');
+          return packageJson ? [dep, packageJson.version] : null;
+        }).filter(Boolean));
+
         await writeFile(join(outdir, 'package.json'), JSON.stringify({
           name: 'bundled-tests',
           version: '0.0.0',
@@ -68,7 +78,7 @@ export default ({ package: packageOverride, projectConfig, rootDir, tests }) => 
             test: 'NODE_NO_WARNINGS=1 NODE_OPTIONS="--experimental-vm-modules" jest',
           },
           dependencies: {
-            'jest': importFrom(rootDir, 'jest/package.json').version,
+            ...externalDependencies,
           },
           ...packageOverride,
         }, null, 2));

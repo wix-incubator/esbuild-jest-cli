@@ -2,6 +2,7 @@ import { cosmiconfig } from 'cosmiconfig';
 import { build as esbuild } from 'esbuild';
 
 import esbuildJest from './plugin.mjs';
+import {ESM_REQUIRE_SHIM} from "./utils/esmRequireShim.mjs";
 import {convertPathToImport} from "./utils/resolve-module.mjs";
 import {importViaChain} from "./utils/resolve-via-chain.mjs";
 
@@ -37,6 +38,7 @@ export async function build() {
   const entryPoints = [
     globalConfig.globalSetup,
     ...(projectConfig.setupFiles || []),
+    projectConfig.testEnvironment,
     ...tests.map(test => test.path),
     ...(projectConfig.setupFilesAfterEnv || []),
     globalConfig.globalTeardown,
@@ -48,11 +50,16 @@ export async function build() {
     bundle: true,
     splitting: true,
     metafile: true,
+    outbase: rootDir,
+    banner: {
+      js: ESM_REQUIRE_SHIM,
+    },
+
     format: 'esm',
 
     entryPoints,
     plugins: [esbuildJest({
-      rootDir,
+      globalConfig,
       projectConfig,
       tests: tests.map(t => t.path),
       package: esbuildJestBaseConfig && esbuildJestBaseConfig.config.package,

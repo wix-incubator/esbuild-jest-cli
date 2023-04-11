@@ -1,6 +1,7 @@
 {
   "esbuild": {
     "sourcemap": true,
+    "platform": "node",
     "outdir": ".bundle",
     "external": ["chalk"]
   },
