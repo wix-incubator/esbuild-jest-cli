@@ -9,11 +9,8 @@
     "esbuild-jest-patch": "utils/patch-jest.mjs"
   },
   "files": [
-    "build.mjs",
-    "index.mjs",
-    "utils/patch-jest.mjs",
-    "utils/resolve-module.mjs",
-    "plugin.mjs"
+    "*.mjs",
+    "utils/*.mjs"
   ],
   "scripts": {
     "test": ":"
