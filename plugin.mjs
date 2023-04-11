@@ -27,29 +27,31 @@ export default ({ package: packageOverride, projectConfig, rootDir, tests }) => 
           outputFiles: Object.keys(result.metafile.outputs),
         });
 
-        async function mapFile(file) {
+        function mapFile(file) {
           const out = mapping[file] || file;
           if (!out) {
             return;
           }
 
-          return await convertPathToImport(outdir, out);
+          return convertPathToImport(outdir, out);
         }
 
         const flattenedConfig = {
           ...projectConfig,
           cacheDirectory: undefined,
           cwd: undefined,
-          globalSetup: await mapFile(projectConfig.globalSetup),
-          globalTeardown: await mapFile(projectConfig.globalTeardown),
+          globalSetup: mapFile(projectConfig.globalSetup),
+          globalTeardown: mapFile(projectConfig.globalTeardown),
           id: undefined,
           moduleNameMapper: undefined,
           rootDir: undefined,
           roots: undefined,
           runner: undefined,
-          testEnvironment: await mapFile(projectConfig.testEnvironment),
-          testMatch: await Promise.all(tests.map(mapFile)),
-          testRunner: await mapFile(projectConfig.testRunner),
+          setupFiles: projectConfig.setupFiles.map(mapFile),
+          setupFilesAfterEnv: projectConfig.setupFilesAfterEnv.map(mapFile),
+          testEnvironment: mapFile(projectConfig.testEnvironment),
+          testMatch: tests.map(mapFile),
+          testRunner: mapFile(projectConfig.testRunner),
           transform: {},
         };
 

@@ -1,11 +1,8 @@
 {
   "esbuild": {
-    "bundle": true,
-    "splitting": true,
     "sourcemap": true,
-    "metafile": true,
-    "format": "esm",
-    "outdir": ".bundle"
+    "outdir": ".bundle",
+    "external": ["chalk"]
   },
   "package": {
     "name": "custom-name"

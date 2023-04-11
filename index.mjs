@@ -2,6 +2,7 @@ import { cosmiconfig } from 'cosmiconfig';
 import { build as esbuild } from 'esbuild';
 
 import esbuildJest from './plugin.mjs';
+import {convertPathToImport} from "./utils/resolve-module.mjs";
 import {importViaChain} from "./utils/resolve-via-chain.mjs";
 
 const explorer = cosmiconfig('esbuild-jest');
@@ -9,7 +10,16 @@ const explorer = cosmiconfig('esbuild-jest');
 export async function build() {
   const rootDir = process.cwd();
 
-  const esbuildBaseConfig = await explorer.search(rootDir);
+  const esbuildJestBaseConfig = await explorer.search(rootDir);
+  const esbuildBaseConfig = esbuildJestBaseConfig ? esbuildJestBaseConfig.config.esbuild : {};
+  const externalModules = esbuildBaseConfig.external || [];
+  const isExternal = (id) => {
+    const importLikePath = convertPathToImport(rootDir, id);
+    return !importLikePath.startsWith('<rootDir>') && externalModules.some(id => {
+      // TODO: This is not enough, we need to support wildcards and maybe some more syntax options
+      return id === importLikePath || importLikePath.startsWith(`${id}/`);
+    });
+  }
 
   const { buildArgv } = importViaChain(rootDir, ['jest'], 'jest-cli/run');
   const jestArgv = await buildArgv();
@@ -30,16 +40,22 @@ export async function build() {
     ...tests.map(test => test.path),
     ...(projectConfig.setupFilesAfterEnv || []),
     globalConfig.globalTeardown,
-  ];
+  ].filter(p => p && !isExternal(p));
 
   const buildResult = await esbuild({
-    ...(esbuildBaseConfig && esbuildBaseConfig.config.esbuild),
-    entryPoints: entryPoints.filter(Boolean),
+    ...esbuildBaseConfig,
+
+    bundle: true,
+    splitting: true,
+    metafile: true,
+    format: 'esm',
+
+    entryPoints,
     plugins: [esbuildJest({
       rootDir,
       projectConfig,
       tests: tests.map(t => t.path),
-      package: esbuildBaseConfig && esbuildBaseConfig.config.package,
+      package: esbuildJestBaseConfig && esbuildJestBaseConfig.config.package,
     })],
   });
 

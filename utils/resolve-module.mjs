@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import resolveFrom from "resolve-from";
 
-export async function convertPathToImport(rootDir, absolutePath) {
+export function convertPathToImport(rootDir, absolutePath) {
   return resolveFromMain(rootDir, absolutePath)
     || resolveFromEntries(rootDir, absolutePath)
     || resolveFromRootDirectory(rootDir, absolutePath);
