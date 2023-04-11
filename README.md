@@ -1,7 +1,7 @@
 esbuild-jest-cli
 ================
 
-`esbuild-jest-cli` is a CLI tool to bundle Jest tests with esbuild for faster or lighter test execution.
+`esbuild-jest-cli` is a CLI tool to bundle Jest tests with `esbuild` for faster or lighter test execution.
 
 It can handle various Jest configurations and supports external modules.
 
@@ -102,5 +102,4 @@ Please note that the maintainer's time is limited, but feel free to report any p
 Copyright
 ---------
 
-© 2023, Wix Incubator. Licensed under [MIT License](LICENSE), 
-
+© 2023, Wix Incubator. Licensed under [MIT License](LICENSE).
