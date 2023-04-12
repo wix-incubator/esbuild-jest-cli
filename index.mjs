@@ -58,12 +58,15 @@ export async function build() {
     format: 'esm',
 
     entryPoints,
-    plugins: [esbuildJest({
-      globalConfig,
-      projectConfig,
-      tests: tests.map(t => t.path),
-      package: esbuildJestBaseConfig && esbuildJestBaseConfig.config.package,
-    })],
+    plugins: [
+      esbuildJest({
+        rootDir: globalConfig.rootDir,
+        projectConfig,
+        tests: tests.map(t => t.path),
+        package: esbuildJestBaseConfig && esbuildJestBaseConfig.config.package,
+      }),
+      ...(esbuildBaseConfig.plugins || []),
+    ],
   });
 
   return buildResult;
