@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import { join, relative, posix } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import importFrom from 'import-from';
 import {convertPathToImport} from "./utils/resolve-module.mjs";
 import {mapSourceToOutputFiles} from "./utils/map-inputs-outputs.mjs";
@@ -8,8 +8,8 @@ export default ({ package: packageOverride, globalConfig, projectConfig, tests }
   return {
     name: 'jest',
     async setup(build) {
-      const rootDir = globalConfig.rootDir;
-      const outdir = build.initialOptions.outdir;
+      const rootDir = resolve(globalConfig.rootDir);
+      const outdir = resolve(build.initialOptions.outdir);
       const external = build.initialOptions.external || [];
 
       const { createScriptTransformer } = importFrom(rootDir, '@jest/transform');
@@ -41,6 +41,7 @@ export default ({ package: packageOverride, globalConfig, projectConfig, tests }
 
         const flattenedConfig = {
           maxWorkers: globalConfig.maxWorkers,
+          testTimeout: globalConfig.testTimeout,
 
           ...projectConfig,
           cacheDirectory: undefined,

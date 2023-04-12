@@ -5,6 +5,7 @@ import esbuildJest from './plugin.mjs';
 import {ESM_REQUIRE_SHIM} from "./utils/esmRequireShim.mjs";
 import {convertPathToImport} from "./utils/resolve-module.mjs";
 import {importViaChain} from "./utils/resolve-via-chain.mjs";
+import {JEST_DEPENDENCIES} from "./utils/jestDependencies.mjs";
 
 const explorer = cosmiconfig('esbuild-jest');
 
@@ -13,7 +14,11 @@ export async function build() {
 
   const esbuildJestBaseConfig = await explorer.search(rootDir);
   const esbuildBaseConfig = esbuildJestBaseConfig ? esbuildJestBaseConfig.config.esbuild : {};
-  const externalModules = esbuildBaseConfig.external || [];
+  const externalModules = [
+    ...JEST_DEPENDENCIES,
+    ...(esbuildBaseConfig.external || []),
+  ];
+
   const isExternal = (id) => {
     const importLikePath = convertPathToImport(rootDir, id);
     return !importLikePath.startsWith('<rootDir>') && externalModules.some(id => {
