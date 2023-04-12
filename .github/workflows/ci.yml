@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - '**/*.md'
+  pull_request:
+    branches: [master]
+    paths-ignore:
+      - '**/*.md'
+
+jobs:
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+      - name: Install dependencies
+        uses: bahmutov/npm-install@v1
+        with:
+          useLockFile: false
+      - name: Set up test project
+        uses: bahmutov/npm-install@v1
+        with:
+          useLockFile: false
+          working-directory: __fixtures__/simple-project
+      - name: Run tests
+        run: npm test
+        working-directory: __fixtures__/simple-project
+      - name: Bundle project
+        run: npm run build
+        working-directory: __fixtures__/simple-project
+      - name: Set up bundled project
+        uses: bahmutov/npm-install@v1
+        with:
+          useLockFile: false
+          working-directory: __fixtures__/simple-project/.bundle
+      - name: Run bundled tests
+        run: npm test
+        working-directory: __fixtures__/simple-project/.bundle
+
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+      - uses: bahmutov/npm-install@v1
+        with:
+          useLockFile: false
+      - name: Semantic release
+        run: npx --no-install semantic-release --debug
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
