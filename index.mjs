@@ -60,7 +60,7 @@ export async function build() {
     entryPoints,
     plugins: [
       esbuildJest({
-        rootDir: globalConfig.rootDir,
+        globalConfig,
         projectConfig,
         tests: tests.map(t => t.path),
         package: esbuildJestBaseConfig && esbuildJestBaseConfig.config.package,
