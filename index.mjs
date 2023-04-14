@@ -1,4 +1,4 @@
-import { cosmiconfig } from 'cosmiconfig';
+import merge from 'lodash.merge';
 import { build as esbuild } from 'esbuild';
 
 import esbuildJest from './plugin.mjs';
@@ -7,13 +7,10 @@ import {convertPathToImport} from "./utils/resolve-module.mjs";
 import {importViaChain} from "./utils/resolve-via-chain.mjs";
 import {JEST_DEPENDENCIES} from "./utils/jestDependencies.mjs";
 
-const explorer = cosmiconfig('esbuild-jest');
-
-export async function build() {
+export async function build(esbuildJestConfig = {}) {
   const rootDir = process.cwd();
 
-  const esbuildJestBaseConfig = await explorer.search(rootDir);
-  const esbuildBaseConfig = esbuildJestBaseConfig ? esbuildJestBaseConfig.config.esbuild : {};
+  const esbuildBaseConfig = { ...esbuildJestConfig.esbuild };
   const externalModules = [
     ...JEST_DEPENDENCIES,
     ...(esbuildBaseConfig.external || []),
@@ -68,11 +65,19 @@ export async function build() {
         globalConfig,
         projectConfig,
         tests: tests.map(t => t.path),
-        package: esbuildJestBaseConfig && esbuildJestBaseConfig.config.package,
+        package: wrapPackageMiddleware(esbuildJestConfig.package),
       }),
       ...(esbuildBaseConfig.plugins || []),
     ],
   });
 
   return buildResult;
+}
+
+function wrapPackageMiddleware(config) {
+  return typeof config === 'function' ? config : createPackageMerger(config)
+}
+
+function createPackageMerger(override) {
+  return (pkg) => merge(pkg, override)
 }
