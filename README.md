@@ -123,7 +123,7 @@ In the `esbuild` section, you can override any `esbuild` option except for a few
 Any other valid [esbuild configuration options](https://esbuild.github.io/api/#options) are supported as expected.
 
 In `package` section, you can override fields in the generated `package.json`, such as `name`, `scripts`, etc.
-It is also possible to pass a function which to modify its contents, e.g.:
+It is also possible to pass a function to modify its contents, e.g.:
 
 ```js
 module.exports = {
