@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "description": "ESBuild wrapper to bundle Jest test projects",
   "type": "module",
-  "module": "index.mjs",
+  "main": "index.mjs",
   "bin": {
     "esbuild-jest": "build.mjs",
     "esbuild-jest-patch": "utils/patch-jest.mjs"
+  },
+  "exports": {
+    "./": "./index.mjs",
+    "./package.json": "./package.json"
   },
   "files": [
     "*.mjs",
