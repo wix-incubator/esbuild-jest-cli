@@ -4,7 +4,16 @@ esbuild-jest-cli
 [![npm version](https://badge.fury.io/js/esbuild-jest-cli.svg)](https://badge.fury.io/js/esbuild-jest-cli)
 [![CI](https://github.com/wix-incubator/esbuild-jest-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/wix-incubator/esbuild-jest-cli/actions/workflows/ci.yml)
 
-`esbuild-jest-cli` is a CLI tool to bundle Jest tests with `esbuild` for faster or lighter test execution.
+`esbuild-jest-cli` is a CLI tool to bundle Jest tests with `esbuild` for faster or lighter test execution, e.g.:
+
+```bash
+esbuild-jest -c jest-custom.config.js --maxWorkers=2
+
+# ls .bundle/**
+# .bundle/chunk-ZEPWVVN4.js
+# .bundle/tests/first.test.js
+# .bundle/tests/second.test.js
+```
 
 It can handle various Jest configurations and supports external modules.
 
