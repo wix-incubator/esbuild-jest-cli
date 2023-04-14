@@ -73,6 +73,26 @@ npx esbuild-jest [...optional-jest-arguments]
 
 You can pass any Jest arguments just like you're running Jest itself.
 
+### Advanced Usage
+
+You can also use the CLI programmatically – especially useful if you are wrapping it in a custom script:
+
+```js
+import { build } from 'esbuild-jest-cli';
+import myPlugin from './my-esbuild-plugin.js';
+
+await build({
+  esbuild: {
+    outdir: 'dist',
+    sourcemap: true,
+    plugins: [myPlugin()],
+  },
+  package: {
+    name: 'custom-name',
+  },
+});
+```
+
 Configuration
 -------------
 
@@ -103,6 +123,19 @@ In the `esbuild` section, you can override any `esbuild` option except for a few
 Any other valid [esbuild configuration options](https://esbuild.github.io/api/#options) are supported as expected.
 
 In `package` section, you can override fields in the generated `package.json`, such as `name`, `scripts`, etc.
+It is also possible to pass a function which to modify its contents, e.g.:
+
+```js
+module.exports = {
+  esbuild: {
+    // ...
+  },
+  package: (p) => ({
+    ...p,
+    customField: 'customValue',
+  }),
+};
+```
 
 Troubleshooting
 ---------------
