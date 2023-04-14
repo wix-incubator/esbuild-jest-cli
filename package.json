@@ -9,7 +9,7 @@
     "esbuild-jest-patch": "utils/patch-jest.mjs"
   },
   "exports": {
-    "./": "./index.mjs",
+    ".": "./index.mjs",
     "./package.json": "./package.json"
   },
   "files": [
