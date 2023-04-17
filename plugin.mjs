@@ -4,7 +4,7 @@ import importFrom from 'import-from';
 import {convertPathToImport} from "./utils/resolve-module.mjs";
 import {mapSourceToOutputFiles} from "./utils/map-inputs-outputs.mjs";
 
-export default ({ package: packageOverride, globalConfig, projectConfig, tests }) => {
+export default ({ package: packageMiddleware, globalConfig, projectConfig, tests }) => {
   return {
     name: 'jest',
     async setup(build) {
@@ -70,7 +70,7 @@ export default ({ package: packageOverride, globalConfig, projectConfig, tests }
           return packageJson ? [dep, packageJson.version] : null;
         }).filter(Boolean));
 
-        await writeFile(join(outdir, 'package.json'), JSON.stringify({
+        await writeFile(join(outdir, 'package.json'), JSON.stringify(packageMiddleware({
           name: 'bundled-tests',
           version: '0.0.0',
           type: 'module',
@@ -81,8 +81,7 @@ export default ({ package: packageOverride, globalConfig, projectConfig, tests }
           dependencies: {
             ...externalDependencies,
           },
-          ...packageOverride,
-        }, null, 2));
+        }), null, 2));
       });
     },
   };
