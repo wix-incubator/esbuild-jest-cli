@@ -1,23 +1,17 @@
 export const ESM_REQUIRE_SHIM = `
-await (async () => {
-  const { dirname } = await import("path");
-  const { fileURLToPath } = await import("url");
+/* CommonJS shim */
+import { dirname as esbuild_jest_cli__dirname } from "path";
+import { fileURLToPath as esbuild_jest_cli__fileURLToPath } from "url";
+import esbuild_jest_cli__module from "module";
 
-  /**
-   * Shim entry-point related paths.
-   */
-  if (typeof globalThis.__filename === "undefined") {
-    globalThis.__filename = fileURLToPath(import.meta.url);
-  }
-  if (typeof globalThis.__dirname === "undefined") {
-    globalThis.__dirname = dirname(globalThis.__filename);
-  }
-  /**
-   * Shim require if needed.
-   */
-  if (typeof globalThis.require === "undefined") {
-    const { default: module } = await import("module");
-    globalThis.require = module.createRequire(import.meta.url);
-  }
-})();
+if (typeof globalThis.__filename === "undefined") {
+  globalThis.__filename = esbuild_jest_cli__fileURLToPath(import.meta.url);
+}
+if (typeof globalThis.__dirname === "undefined") {
+  globalThis.__dirname = esbuild_jest_cli__dirname(globalThis.__filename);
+}
+if (typeof globalThis.require === "undefined") {
+  globalThis.require = esbuild_jest_cli__module.createRequire(import.meta.url);
+}
+/* End CommonJS shim */
 `;
