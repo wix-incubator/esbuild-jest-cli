@@ -105,3 +105,4 @@ dist
 
 .idea/
 .bundle/
+/__fixtures__/*-bundled

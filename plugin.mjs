@@ -31,12 +31,16 @@ export default ({ package: packageMiddleware, globalConfig, projectConfig, tests
         });
 
         function mapFile(file) {
-          const out = mapping[file] || file;
-          if (!out) {
+          if (!file) {
             return;
           }
 
-          return convertPathToImport(outdir, out);
+          const out = mapping[file];
+          if (out) {
+            return convertPathToImport(outdir, out);
+          } else {
+            return convertPathToImport(rootDir, file);
+          }
         }
 
         const flattenedConfig = {
