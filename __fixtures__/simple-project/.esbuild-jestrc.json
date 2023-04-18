@@ -2,7 +2,10 @@
   "esbuild": {
     "sourcemap": true,
     "platform": "node",
-    "outdir": ".bundle",
+    "outdir": "../simple-project-bundled",
+    "outExtension": {
+      ".js": ".mjs"
+    },
     "external": ["chalk"]
   },
   "package": {

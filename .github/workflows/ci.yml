@@ -39,10 +39,10 @@ jobs:
         uses: bahmutov/npm-install@v1
         with:
           useLockFile: false
-          working-directory: __fixtures__/simple-project/.bundle
+          working-directory: __fixtures__/simple-project-bundled
       - name: Run bundled tests
         run: npm test
-        working-directory: __fixtures__/simple-project/.bundle
+        working-directory: __fixtures__/simple-project-bundled
 
   publish:
     name: Publish
