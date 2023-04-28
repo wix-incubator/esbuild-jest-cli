@@ -5,7 +5,16 @@ import {moveFile} from "./utils/move-file.mjs";
 import {convertPathToImport} from "./utils/resolve-module.mjs";
 import {mapSourceToOutputFiles} from "./utils/map-inputs-outputs.mjs";
 
-export default ({ package: packageMiddleware, globalConfig, projectConfig, tests }) => {
+const passThrough = (filePath, fileContents) => fileContents;
+
+export default ({
+  package: packageMiddleware,
+  globalConfig,
+  projectConfig,
+  tests,
+  preTransform = passThrough,
+  postTransform = passThrough,
+}) => {
   return {
     name: 'jest',
     async setup(build) {
@@ -19,8 +28,9 @@ export default ({ package: packageMiddleware, globalConfig, projectConfig, tests
       build.onLoad({ filter: /.*/ }, async (args) => {
         const fileContent = await readFile(args.path, 'utf8');
         const loader = args.path.endsWith('.json') ? 'json' : 'js';
-        const { code: contents } =  transformer.transformSource(args.path, fileContent, {});
-        return { contents, loader };
+        const preprocessed = preTransform(args.path, fileContent);
+        const { code: transformed } =  transformer.transformSource(args.path, preprocessed, {});
+        return { contents: postTransform(args.path, transformed), loader };
       });
 
       build.onEnd(async (result) => {
