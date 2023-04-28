@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import { join, relative, resolve } from 'node:path';
+import { sep, join, resolve } from 'node:path';
 import importFrom from 'import-from';
+import {moveFile} from "./utils/move-file.mjs";
 import {convertPathToImport} from "./utils/resolve-module.mjs";
 import {mapSourceToOutputFiles} from "./utils/map-inputs-outputs.mjs";
 
@@ -42,6 +43,29 @@ export default ({ package: packageMiddleware, globalConfig, projectConfig, tests
             return convertPathToImport(rootDir, file);
           }
         }
+
+        async function moveExternalEntryPointsBackToRoot() {
+          for (const [input, output] of Object.entries(mapping)) {
+            const newPath = redirectExternalModule(output);
+
+            if (newPath !== output) {
+              await moveFile(output, newPath);
+              mapping[input] = newPath;
+            }
+          }
+        }
+
+        function redirectExternalModule(modulePath) {
+          const segments = modulePath.split(sep);
+          const nodeModulesIndex = segments.indexOf('node_modules');
+          if (nodeModulesIndex < 0) {
+            return modulePath;
+          }
+
+          return [outdir, 'bundled_externals', ...segments.slice(nodeModulesIndex + 1)].join(sep);
+        }
+
+        await moveExternalEntryPointsBackToRoot();
 
         const flattenedConfig = {
           maxWorkers: globalConfig.maxWorkers,
