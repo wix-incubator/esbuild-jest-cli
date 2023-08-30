@@ -4,6 +4,7 @@
   "description": "ESBuild wrapper to bundle Jest test projects",
   "type": "module",
   "main": "index.mjs",
+  "types": "index.d.ts",
   "bin": {
     "esbuild-jest": "build.mjs",
     "esbuild-jest-patch": "utils/patch-jest.mjs"
