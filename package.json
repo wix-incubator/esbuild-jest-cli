@@ -15,6 +15,7 @@
   },
   "files": [
     "*.mjs",
+    "*.d.ts",
     "utils/*.mjs"
   ],
   "scripts": {
