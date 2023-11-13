@@ -11,6 +11,10 @@ export function importViaChain(rootDir, chain, targetModuleName) {
   return importFrom(resolveCwd(rootDir, chain), targetModuleName);
 }
 
+export function importViaChainUnsafe(rootDir, chain, targetFilename) {
+  return importFrom(rootDir, path.join(resolveCwd(rootDir, chain), targetFilename));
+}
+
 function resolveCwd(rootDir, chain) {
   let cwd = rootDir;
   for (const module of chain) {

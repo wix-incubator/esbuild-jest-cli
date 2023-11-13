@@ -47,14 +47,6 @@ or with yarn:
 yarn add --dev esbuild-jest-cli
 ```
 
-Before you can use it, you also have to run `esbuild-jest-patch`, which comes with the package, e.g.:
-
-```
-npx esbuild-jest-patch
-```
-
-This patch adds an additional module to the exports section in the jest-cli package. It is mandatory for proper usage.
-
 Usage
 -----
 
