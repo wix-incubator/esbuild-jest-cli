@@ -4,7 +4,7 @@ import { build as esbuild } from 'esbuild';
 import esbuildJest from './plugin.mjs';
 import {ESM_REQUIRE_SHIM} from "./utils/esmRequireShim.mjs";
 import {convertPathToImport} from "./utils/resolve-module.mjs";
-import {importViaChain} from "./utils/resolve-via-chain.mjs";
+import {importViaChain,importViaChainUnsafe} from "./utils/resolve-via-chain.mjs";
 import {JEST_DEPENDENCIES} from "./utils/jestDependencies.mjs";
 
 export async function build(esbuildJestConfig = {}) {
@@ -24,7 +24,18 @@ export async function build(esbuildJestConfig = {}) {
     });
   }
 
-  const { buildArgv } = importViaChain(rootDir, ['jest'], 'jest-cli/run');
+  let buildArgv;
+
+  try {
+    ({buildArgv} = importViaChainUnsafe(rootDir, ['jest', 'jest-cli'], './build/run.js'));
+  } catch (error) {
+    try {
+      ({buildArgv} = importViaChainUnsafe(rootDir, ['jest', 'jest-cli'], './build/cli/index.js'));
+    } catch {
+      throw error;
+    }
+  }
+
   const jestArgv = await buildArgv();
 
   const { readConfig } = importViaChain(rootDir, ['jest'], 'jest-config');
