@@ -2,10 +2,11 @@ import merge from 'lodash.merge';
 import { build as esbuild } from 'esbuild';
 
 import esbuildJest from './plugin.mjs';
-import {ESM_REQUIRE_SHIM} from "./utils/esmRequireShim.mjs";
+import {ESM_REQUIRE_SHIM} from "./utils/esm-require-shim.mjs";
 import {convertPathToImport} from "./utils/resolve-module.mjs";
 import {importViaChain,importViaChainUnsafe} from "./utils/resolve-via-chain.mjs";
-import {JEST_DEPENDENCIES} from "./utils/jestDependencies.mjs";
+import {isBuiltinReporter} from "./utils/is-builtin-reporter.mjs";
+import {JEST_DEPENDENCIES} from "./utils/jest-dependencies.mjs";
 
 export async function build(esbuildJestConfig = {}) {
   const rootDir = process.cwd();
@@ -39,6 +40,13 @@ export async function build(esbuildJestConfig = {}) {
   const jestArgv = await buildArgv();
 
   const { readConfig } = importViaChain(rootDir, ['jest'], 'jest-config');
+  /**
+   * @type {{
+   *   configPath: string;
+   *   globalConfig: import('@jest/types').GlobalConfig;
+   *   projectConfig: import('@jest/types').ProjectConfig;
+   * }}
+   */
   const fullConfig = await readConfig(jestArgv, rootDir, false);
   const { configPath, globalConfig, projectConfig } = fullConfig;
 
@@ -49,6 +57,7 @@ export async function build(esbuildJestConfig = {}) {
   const { tests } = await searchSource.getTestPaths(globalConfig, []);
 
   const entryPoints = [
+    ...globalConfig.reporters.map(r => Array.isArray(r) ? r[0] : r).filter(x => !isBuiltinReporter(x)),
     globalConfig.globalSetup,
     ...(projectConfig.setupFiles || []),
     projectConfig.testEnvironment,

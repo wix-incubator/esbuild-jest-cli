@@ -1,9 +1,11 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { lstat, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { sep, join, resolve } from 'node:path';
 import importFrom from 'import-from';
-import {moveFile} from "./utils/move-file.mjs";
-import {convertPathToImport} from "./utils/resolve-module.mjs";
-import {mapSourceToOutputFiles} from "./utils/map-inputs-outputs.mjs";
+import { convertPathToImport } from "./utils/resolve-module.mjs";
+import { isBuiltinReporter } from "./utils/is-builtin-reporter.mjs";
+import { mapSourceToOutputFiles } from "./utils/map-inputs-outputs.mjs";
+import { moveJsFile } from "./utils/move-js-file.mjs";
+import { pruneDirectory } from "./utils/prune-directory.mjs";
 
 const passThrough = (filePath, fileContents) => fileContents;
 
@@ -41,6 +43,10 @@ export default ({
           outputFiles: Object.keys(result.metafile.outputs),
         });
 
+        /**
+         * @param {string} file
+         * @returns {string}
+         */
         function mapFile(file) {
           if (!file) {
             return;
@@ -54,12 +60,28 @@ export default ({
           }
         }
 
+        /**
+         * @param {string} reporter
+         * @returns {string}
+         */
+        function mapSingleReporter(reporter) {
+          return isBuiltinReporter(reporter) ? reporter : mapFile(reporter);
+        }
+
+        /** @param {string | [string, any]} reporter */
+        function mapReporter(reporter) {
+          return Array.isArray(reporter)
+            ? [mapSingleReporter(reporter[0]), reporter[1]]
+            : mapSingleReporter(reporter);
+        }
+
         async function moveExternalEntryPointsBackToRoot() {
           for (const [input, output] of Object.entries(mapping)) {
             const newPath = redirectExternalModule(output);
 
             if (newPath !== output) {
-              await moveFile(output, newPath);
+              await moveJsFile(output, newPath);
+
               mapping[input] = newPath;
             }
           }
@@ -76,10 +98,12 @@ export default ({
         }
 
         await moveExternalEntryPointsBackToRoot();
+        await pruneDirectory(join(outdir, 'node_modules'));
 
         const flattenedConfig = {
           maxWorkers: globalConfig.maxWorkers,
           testTimeout: globalConfig.testTimeout,
+          reporters: globalConfig.reporters.map(mapReporter),
 
           ...projectConfig,
           cacheDirectory: undefined,
