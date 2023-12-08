@@ -1,5 +1,4 @@
 export const JEST_DEPENDENCIES = [
-  'jest',
   'jest-changed-files',
   'jest-circus',
   'jest-cli',

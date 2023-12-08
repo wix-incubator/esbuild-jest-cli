@@ -72,6 +72,7 @@ export async function build(esbuildJestConfig = {}) {
     bundle: true,
     splitting: true,
     metafile: true,
+    external: externalModules,
     outbase: rootDir,
     banner: {
       js: ESM_REQUIRE_SHIM,
@@ -88,7 +89,6 @@ export async function build(esbuildJestConfig = {}) {
         package: wrapPackageMiddleware(esbuildJestConfig.package),
         preTransform: esbuildJestConfig.preTransform,
         postTransform: esbuildJestConfig.postTransform,
-        ...(esbuildBaseConfig.external || []),
       }),
       ...(esbuildBaseConfig.plugins || []),
     ],

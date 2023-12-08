@@ -1,4 +1,4 @@
-import { lstat, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { sep, join, resolve } from 'node:path';
 import importFrom from 'import-from';
 import { convertPathToImport } from "./utils/resolve-module.mjs";
@@ -6,6 +6,7 @@ import { isBuiltinReporter } from "./utils/is-builtin-reporter.mjs";
 import { mapSourceToOutputFiles } from "./utils/map-inputs-outputs.mjs";
 import { moveJsFile } from "./utils/move-js-file.mjs";
 import { pruneDirectory } from "./utils/prune-directory.mjs";
+import { JEST_DEPENDENCIES } from "./utils/jest-dependencies.mjs";
 
 const passThrough = (filePath, fileContents) => fileContents;
 
@@ -127,10 +128,16 @@ export default ({
       });
 
       build.onEnd(async (result) => {
-        const externalDependencies = Object.fromEntries(['jest', ...external].map(dep => {
-          const packageJson = importFrom.silent(rootDir, dep + '/package.json');
-          return packageJson ? [dep, packageJson.version] : null;
-        }).filter(Boolean));
+        const externalDependencies = Object.fromEntries(
+          ['jest', ...external]
+            .map(dep => {
+              if (JEST_DEPENDENCIES.includes(dep)) {
+                return null;
+              }
+
+              const packageJson = importFrom.silent(rootDir, dep + '/package.json');
+              return packageJson ? [dep, packageJson.version] : null;
+            }).filter(Boolean));
 
         await writeFile(join(outdir, 'package.json'), JSON.stringify(packageMiddleware({
           name: 'bundled-tests',

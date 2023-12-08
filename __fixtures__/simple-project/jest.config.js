@@ -5,11 +5,10 @@ module.exports = {
   setupFilesAfterEnv: ['lodash/noop'],
   reporters: [
     'default',
-    'jest-allure2-reporter',
     '<rootDir>/customReporter.js',
   ],
   testMatch: [
     '<rootDir>/src/**/*.test.js',
   ],
-  testEnvironment: 'jest-allure2-reporter/environment-node',
+  testEnvironment: 'jest-environment-emit/node',
 };

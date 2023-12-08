@@ -11,6 +11,7 @@
     "esbuild": "^0.19.8",
     "esbuild-jest-cli": "../..",
     "jest": "^29.5.0",
+    "jest-environment-emit": "^1.0.3",
     "jest-allure2-reporter": "^2.0.0-beta.1",
     "lodash": "^4.17.21"
   }

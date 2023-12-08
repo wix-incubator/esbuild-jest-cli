@@ -6,7 +6,7 @@ module.exports = {
     "outExtension": {
       ".js": ".mjs"
     },
-    "external": ["chalk", "jest-allure2-reporter"],
+    "external": ["chalk", "dtrace-provider"],
   },
   "preTransform": (path, contents) => {
     if (path.includes('lodash/noop')) {
