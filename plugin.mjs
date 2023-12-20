@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import { sep, join, resolve } from 'node:path';
+import { sep, join, relative, resolve } from 'node:path';
 import importFrom from 'import-from';
+import { logger, optimizeTracing } from "./utils/logger.mjs";
 import { convertPathToImport } from "./utils/resolve-module.mjs";
 import { isBuiltinReporter } from "./utils/is-builtin-reporter.mjs";
 import { mapSourceToOutputFiles } from "./utils/map-inputs-outputs.mjs";
@@ -9,6 +10,21 @@ import { pruneDirectory } from "./utils/prune-directory.mjs";
 import { JEST_DEPENDENCIES } from "./utils/jest-dependencies.mjs";
 
 const passThrough = (filePath, fileContents) => fileContents;
+
+const __CONTENT = optimizeTracing((log, content, message) => log.trace({ content }, message));
+const __PROCESS = optimizeTracing((log, before, after, message) => {
+  if (before !== after) {
+    log.trace({content: after}, message);
+  }
+});
+
+const __READ = (log, content) => __CONTENT(log, content, 'read file');
+const __PREPROCESS = (log, before, after) => __PROCESS(log, before, after, 'pre-process file');
+const __TRANSFORM = (log, content) => __CONTENT(log, content, 'transform file');
+const __POSTPROCESS = (log, before, after) => __PROCESS(log, before, after, 'post-process file');
+const __FILE_MAPPING = (log, content) => __CONTENT(log, content, 'create file mapping');
+const __JEST_CONFIG = (log, content) => __CONTENT(log, content, 'create jest config');
+const __PACKAGE_JSON = (log, content) => __CONTENT(log, content, 'create package.json');
 
 export default ({
   package: packageMiddleware,
@@ -29,11 +45,24 @@ export default ({
       const transformer = await createScriptTransformer(projectConfig);
 
       build.onLoad({ filter: /.*/ }, async (args) => {
-        const fileContent = await readFile(args.path, 'utf8');
-        const loader = args.path.endsWith('.json') ? 'json' : 'js';
-        const preprocessed = preTransform(args.path, fileContent);
-        const { code: transformed } =  transformer.transformSource(args.path, preprocessed, {});
-        return { contents: postTransform(args.path, transformed), loader };
+        const log = logger.child({ tid: ['jest-transform', args.path] });
+
+        return log.trace.complete(relative(rootDir, args.path), async () => {
+          const fileContent = await readFile(args.path, 'utf8');
+          __READ(log, fileContent);
+
+          const preprocessed = preTransform(args.path, fileContent);
+          __PREPROCESS(log, fileContent, preprocessed);
+
+          const { code: transformed } =  transformer.transformSource(args.path, preprocessed, {});
+          __TRANSFORM(log, transformed);
+
+          const contents = postTransform(args.path, transformed);
+          __POSTPROCESS(log, transformed, contents);
+
+          const loader = args.path.endsWith('.json') ? 'json' : 'js';
+          return { contents, loader };
+        });
       });
 
       build.onEnd(async (result) => {
@@ -43,6 +72,8 @@ export default ({
           sourceFiles: Object.keys(result.metafile.inputs),
           outputFiles: Object.keys(result.metafile.outputs),
         });
+
+        __FILE_MAPPING(logger, mapping);
 
         /**
          * @param {string} file
@@ -124,6 +155,7 @@ export default ({
           transform: {},
         };
 
+        __JEST_CONFIG(logger, flattenedConfig);
         await writeFile(join(outdir, 'jest.config.json'), JSON.stringify(flattenedConfig, null, 2));
       });
 
@@ -139,7 +171,7 @@ export default ({
               return packageJson ? [dep, packageJson.version] : null;
             }).filter(Boolean));
 
-        await writeFile(join(outdir, 'package.json'), JSON.stringify(packageMiddleware({
+        const packageJson = packageMiddleware({
           name: 'bundled-tests',
           version: '0.0.0',
           type: 'module',
@@ -150,7 +182,10 @@ export default ({
           dependencies: {
             ...externalDependencies,
           },
-        }), null, 2));
+        });
+
+        __PACKAGE_JSON(logger, packageJson);
+        await writeFile(join(outdir, 'package.json'), JSON.stringify(packageJson, null, 2));
       });
     },
   };
