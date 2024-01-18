@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
   bunyamin,
+  nobunyamin,
   isDebug,
   threadGroups,
   traceEventStream,
@@ -19,13 +20,15 @@ threadGroups.add({
 threadGroups.add({
   id: 'jest-transform',
   displayName: 'Jest Transform',
+  maxConcurrency: 100500,
 });
 
 bunyamin.useLogger(createBunyanImpl(), 1);
 
-export const logger = bunyamin.child({
-  cat: PACKAGE_NAME,
-});
+export const logger = bunyamin.child({ tid: PACKAGE_NAME });
+export const optimizedLogger = isDebug(PACKAGE_NAME)
+  ? logger
+  : nobunyamin;
 
 const noop = () => {};
 
