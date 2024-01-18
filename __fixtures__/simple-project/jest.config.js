@@ -5,6 +5,7 @@ module.exports = {
   setupFilesAfterEnv: ['lodash/noop'],
   reporters: [
     'default',
+    'linked-local-reporter',
     '<rootDir>/customReporter.js',
   ],
   testMatch: [

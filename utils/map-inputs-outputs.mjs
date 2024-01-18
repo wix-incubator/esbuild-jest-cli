@@ -12,7 +12,7 @@ export function mapSourceToOutputFiles({ rootDir, outdir, sourceFiles, outputFil
   const outputMap = outputFiles.reduce((acc, rawOutputFile) => {
     const outputFile = path.relative(outdir, rawOutputFile);
     const outputFileParts = outputFile.split('.');
-    const outputFileBase = outputFileParts.slice(0, -1).join('.');
+    const outputFileBase = adaptTwoDots(outputFileParts.slice(0, -1).join('.'));
     acc[outputFileBase] = rawOutputFile;
     return acc;
   }, {});
@@ -27,4 +27,14 @@ export function mapSourceToOutputFiles({ rootDir, outdir, sourceFiles, outputFil
   }
 
   return result;
+}
+
+function adaptTwoDots(filePath) {
+  const segments = filePath.split(path.sep);
+  return segments.map(convertTwoDots).join(path.sep);
+}
+
+function convertTwoDots(segment) {
+  return segment === '_.._' ? '..' : segment;
+
 }
