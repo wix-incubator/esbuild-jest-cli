@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { sep, join, relative, resolve } from 'node:path';
 import importFrom from 'import-from';
-import { logger, optimizeTracing } from "./utils/logger.mjs";
+import { logger, optimizedLogger, optimizeTracing } from "./utils/logger.mjs";
 import { convertPathToImport } from "./utils/resolve-module.mjs";
 import { isBuiltinReporter } from "./utils/is-builtin-reporter.mjs";
 import { mapSourceToOutputFiles } from "./utils/map-inputs-outputs.mjs";
@@ -11,20 +11,27 @@ import { JEST_DEPENDENCIES } from "./utils/jest-dependencies.mjs";
 
 const passThrough = (filePath, fileContents) => fileContents;
 
-const __CONTENT = optimizeTracing((log, content, message) => log.trace({ content }, message));
-const __PROCESS = optimizeTracing((log, before, after, message) => {
+const __CONTENT = optimizeTracing((log, content, message) => log.trace(
+  typeof content === 'object'
+    ? content
+    : { content },
+  message
+));
+
+const __DIFF = optimizeTracing((log, before, after, message) => {
   if (before !== after) {
-    log.trace({content: after}, message);
+    __CONTENT(log, after, message);
   }
 });
 
 const __READ = (log, content) => __CONTENT(log, content, 'read file');
-const __PREPROCESS = (log, before, after) => __PROCESS(log, before, after, 'pre-process file');
+const __PREPROCESS = (log, before, after) => __DIFF(log, before, after, 'pre-process file');
 const __TRANSFORM = (log, content) => __CONTENT(log, content, 'transform file');
-const __POSTPROCESS = (log, before, after) => __PROCESS(log, before, after, 'post-process file');
-const __FILE_MAPPING = (log, content) => __CONTENT(log, content, 'create file mapping');
-const __JEST_CONFIG = (log, content) => __CONTENT(log, content, 'create jest config');
-const __PACKAGE_JSON = (log, content) => __CONTENT(log, content, 'create package.json');
+const __POSTPROCESS = (log, before, after) => __DIFF(log, before, after, 'post-process file');
+const __FILE_MAPPING_CREATING = (log, input) => __CONTENT(log, input, 'creating file mapping');
+const __FILE_MAPPING_CREATED = (log, input) => __CONTENT(log, input, 'created file mapping');
+const __JEST_CONFIG = (log, config) => __CONTENT(log, config, 'create jest config');
+const __PACKAGE_JSON = (log, packageJson) => __CONTENT(log, packageJson, 'create package.json');
 
 export default ({
   package: packageMiddleware,
@@ -45,7 +52,7 @@ export default ({
       const transformer = await createScriptTransformer(projectConfig);
 
       build.onLoad({ filter: /.*/ }, async (args) => {
-        const log = logger.child({ tid: ['jest-transform', args.path] });
+        const log = optimizedLogger.child({ tid: ['jest-transform', args.path] });
 
         return log.trace.complete(relative(rootDir, args.path), async () => {
           const fileContent = await readFile(args.path, 'utf8');
@@ -66,14 +73,16 @@ export default ({
       });
 
       build.onEnd(async (result) => {
-        const mapping = mapSourceToOutputFiles({
+        const mappingInput = {
           rootDir,
           outdir,
           sourceFiles: Object.keys(result.metafile.inputs),
           outputFiles: Object.keys(result.metafile.outputs),
-        });
+        };
 
-        __FILE_MAPPING(logger, mapping);
+        __FILE_MAPPING_CREATING(logger, mappingInput);
+        const mapping = mapSourceToOutputFiles(mappingInput);
+        __FILE_MAPPING_CREATED(logger, mapping);
 
         /**
          * @param {string} file
