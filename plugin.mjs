@@ -149,6 +149,7 @@ export default ({
           ...projectConfig,
           cacheDirectory: undefined,
           cwd: undefined,
+          coverageDirectory: mapFile(projectConfig.coverageDirectory),
           globalSetup: mapFile(projectConfig.globalSetup),
           globalTeardown: mapFile(projectConfig.globalTeardown),
           id: undefined,
