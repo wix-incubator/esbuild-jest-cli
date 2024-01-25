@@ -29,8 +29,9 @@ function verifyDirectoryStructure() {
 }
 
 function verifyJestConfig() {
-  const { globalSetup, reporters, setupFilesAfterEnv, testEnvironment, testMatch, testRunner, globalTeardown } = parseJSON('jest.config.json');
+  const { coverageDirectory, globalSetup, reporters, setupFilesAfterEnv, testEnvironment, testMatch, testRunner, globalTeardown } = parseJSON('jest.config.json');
 
+  assertEqual(coverageDirectory, '<rootDir>/coverage', 'coverageDirectory');
   assertEqual(globalSetup, '<rootDir>/globalSetup.mjs', 'globalSetup');
   assertEqual(reporters.length, 4, 'reporters length');
   assertEqual(reporters[0][0], 'default', 'reporters[0]');
