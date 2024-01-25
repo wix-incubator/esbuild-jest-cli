@@ -35,6 +35,9 @@ jobs:
       - name: Bundle project
         run: npm run build
         working-directory: __fixtures__/simple-project
+      - name: Verify the bundle
+        run: npm run verify
+        working-directory: __fixtures__/simple-project
       - name: Set up bundled project
         uses: bahmutov/npm-install@v1
         with:

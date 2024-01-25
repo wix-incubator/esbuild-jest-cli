@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { findUpSync } from 'find-up';
 import resolveFrom from "resolve-from";
 
 export function convertPathToImport(rootDir, absolutePath) {
@@ -33,16 +34,20 @@ function resolveFromEntries(rootDir, absolutePath) {
     return undefined;
   }
 
-  const packageExports = packageJson.exports || {};
-  for (const innerEntry of Object.keys(packageExports)) {
-    const packageEntry = path.posix.join(packageName, innerEntry)
-    const resolvedPath = resolveFrom.silent(rootDir, packageEntry);
-    if (resolvedPath === absolutePath) {
-      return packageEntry;
+  const packageExports = packageJson.exports;
+  if (packageExports) {
+    for (const innerEntry of Object.keys(packageExports)) {
+      const packageEntry = path.posix.join(packageName, innerEntry)
+      const resolvedPath = resolveFrom.silent(rootDir, packageEntry);
+      if (resolvedPath === absolutePath) {
+        return packageEntry;
+      }
     }
+  } else {
+    return path.posix.join(packageName, ...path.relative(packagePath, absolutePath).split(path.sep));
   }
 
-  return path.posix.join(packageName, ...path.relative(packagePath, absolutePath).split(path.sep));
+  return undefined;
 }
 
 function resolveFromRootDirectory(rootDir, absolutePath) {
@@ -56,7 +61,7 @@ function inferPackageInfo(rootDir, absolutePath) {
   const pathParts = relativePath.split(path.sep);
   const nodeModulesIndex = pathParts.indexOf('node_modules');
   if (nodeModulesIndex < 0) {
-    return result;
+    return inferLinkedPackageInfo(rootDir, absolutePath) || result;
   }
 
   const isInnerModule = pathParts.lastIndexOf('node_modules') > nodeModulesIndex;
@@ -78,11 +83,32 @@ function inferPackageInfo(rootDir, absolutePath) {
   return result;
 }
 
+/**
+ * @param {string} rootDir
+ * @param {string} absolutePath
+ * @returns {{ packageName: string, packagePath: string } | undefined}
+ */
+function inferLinkedPackageInfo(rootDir, absolutePath) {
+  const packageJsonPath = findUpSync('package.json', { cwd: path.dirname(absolutePath) });
+  if (!packageJsonPath || path.dirname(packageJsonPath) === rootDir) {
+    return undefined;
+  }
+
+  const packageJson = parsePackageJson(packageJsonPath);
+  return {
+    packageName: packageJson.name,
+    packagePath: path.dirname(packageJsonPath),
+  };
+}
+
 function readPackageJson(packagePath) {
   const packageJsonPath = path.join(packagePath, 'package.json');
+  return parsePackageJson(packageJsonPath);
+}
 
+function parsePackageJson(filePath) {
   try {
-    return JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   } catch {
     return null;
   }

@@ -3,10 +3,19 @@ import { build as esbuild } from 'esbuild';
 
 import esbuildJest from './plugin.mjs';
 import {ESM_REQUIRE_SHIM} from "./utils/esm-require-shim.mjs";
-import {convertPathToImport} from "./utils/resolve-module.mjs";
-import {importViaChain,importViaChainUnsafe} from "./utils/resolve-via-chain.mjs";
 import {isBuiltinReporter} from "./utils/is-builtin-reporter.mjs";
 import {JEST_DEPENDENCIES} from "./utils/jest-dependencies.mjs";
+import {logger, optimizedLogger, optimizeTracing} from "./utils/logger.mjs";
+import {convertPathToImport} from "./utils/resolve-module.mjs";
+import {importViaChain, importViaChainUnsafe} from "./utils/resolve-via-chain.mjs";
+
+const __RESOLVED__ = optimizeTracing((id, resolved) => {
+  optimizedLogger.trace({ id }, `resolved: ${resolved}`);
+});
+
+const __IS_EXTERNAL__ = optimizeTracing((id, external) => {
+  optimizedLogger.trace(`mark as ${external ? 'external' : 'internal'}: ${id}`);
+});
 
 export async function build(esbuildJestConfig = {}) {
   const rootDir = process.cwd();
@@ -17,13 +26,17 @@ export async function build(esbuildJestConfig = {}) {
     ...(esbuildBaseConfig.external || []),
   ];
 
-  const isExternal = (id) => {
-    const importLikePath = convertPathToImport(rootDir, id);
-    return !importLikePath.startsWith('<rootDir>') && externalModules.some(id => {
-      // TODO: This is not enough, we need to support wildcards and maybe some more syntax options
-      return id === importLikePath || importLikePath.startsWith(`${id}/`);
+  const isExternal = (id) =>
+    optimizedLogger.trace.complete(`isExternal: ${id}`, () => {
+      const importLikePath = convertPathToImport(rootDir, id);
+      __RESOLVED__(id, importLikePath);
+      const result = !importLikePath.startsWith('<rootDir>') && externalModules.some(id => {
+        // TODO: This is not enough, we need to support wildcards and maybe some more syntax options
+        return id === importLikePath || importLikePath.startsWith(`${id}/`);
+      });
+      __IS_EXTERNAL__(id, result);
+      return result;
     });
-  }
 
   let buildArgv;
 
@@ -49,6 +62,7 @@ export async function build(esbuildJestConfig = {}) {
    */
   const fullConfig = await readConfig(jestArgv, rootDir, false);
   const { configPath, globalConfig, projectConfig } = fullConfig;
+  logger.trace({ configPath, globalConfig, projectConfig }, 'read Jest config');
 
   const { default: Runtime } = importViaChain(rootDir, ['jest', '@jest/core'], 'jest-runtime');
   const testContext = await Runtime.createContext(projectConfig, { maxWorkers: 1, watch: false, watchman: false });
@@ -66,7 +80,7 @@ export async function build(esbuildJestConfig = {}) {
     globalConfig.globalTeardown,
   ].filter(p => p && !isExternal(p));
 
-  const buildResult = await esbuild({
+  const esbuildConfig = {
     ...esbuildBaseConfig,
 
     bundle: true,
@@ -92,7 +106,9 @@ export async function build(esbuildJestConfig = {}) {
       }),
       ...(esbuildBaseConfig.plugins || []),
     ],
-  });
+  };
+
+  const buildResult = await logger.trace.complete(esbuildConfig, 'esbuild', () => esbuild(esbuildConfig));
 
   return buildResult;
 }

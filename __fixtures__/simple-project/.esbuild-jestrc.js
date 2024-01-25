@@ -6,7 +6,7 @@ module.exports = {
     "outExtension": {
       ".js": ".mjs"
     },
-    "external": ["chalk", "dtrace-provider"],
+    "external": ["chalk", "dtrace-provider", "@linked-dependencies/external"],
   },
   "preTransform": (path, contents) => {
     if (path.includes('lodash/noop')) {
@@ -16,6 +16,9 @@ module.exports = {
     return contents;
   },
   "package": {
-    "name": "custom-name"
+    "name": "custom-name",
+    "dependencies": {
+      "@linked-dependencies/external": "../linked-dependencies/external",
+    }
   }
 };
