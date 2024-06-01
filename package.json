@@ -47,6 +47,7 @@
   },
   "devDependencies": {
     "@jest/types": "^29.6.3",
+    "@jest/transform": "^29.6.3",
     "esbuild": "^0.19.8"
   }
 }
