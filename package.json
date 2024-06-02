@@ -6,8 +6,7 @@
   "main": "index.mjs",
   "types": "index.d.mts",
   "bin": {
-    "esbuild-jest": "build.mjs",
-    "esbuild-jest-patch": "utils/patch-jest.mjs"
+    "esbuild-jest": "build.mjs"
   },
   "exports": {
     ".": "./index.mjs",
@@ -38,16 +37,16 @@
     "bunyan-debug-stream": "^3.1.0",
     "cosmiconfig": "^8.1.3",
     "find-up": "^7.0.0",
-    "lodash.merge": "^4.6.2",
     "import-from": "^4.0.0",
+    "lodash.merge": "^4.6.2",
     "resolve-from": "^5.0.0"
   },
   "peerDependencies": {
     "esbuild": ">=0.17.4"
   },
   "devDependencies": {
-    "@jest/types": "^29.6.3",
     "@jest/transform": "^29.6.3",
-    "esbuild": "^0.19.8"
+    "@jest/types": "^29.6.3",
+    "esbuild": "^0.21.4"
   }
 }

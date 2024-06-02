@@ -4,9 +4,6 @@ module.exports = {
     "sourcemap": true,
     "platform": "node",
     "outdir": "../simple-project-bundled",
-    "outExtension": {
-      ".js": ".mjs"
-    },
     "external": ["chalk", "dtrace-provider", "@linked-dependencies/external"],
   },
   "useTransformer": ({ build, transformer }) => {
