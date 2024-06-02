@@ -135,7 +135,8 @@ export default ({
           testEnvironment: mapFile(projectConfig.testEnvironment),
           testMatch: tests.map(mapFile),
           testRunner: mapFile(projectConfig.testRunner),
-          transform: {},
+          transform: undefined,
+          transformIgnorePatterns: undefined,
         };
 
         __JEST_CONFIG(logger, flattenedConfig);
@@ -157,18 +158,25 @@ export default ({
         const packageJson = packageMiddleware({
           name: 'bundled-tests',
           version: '0.0.0',
-          type: 'module',
           private: true,
           scripts: {
-            test: 'NODE_NO_WARNINGS=1 NODE_OPTIONS="--experimental-vm-modules" jest',
+            test: "NODE_OPTIONS='-r @babel/register' jest"
           },
           dependencies: {
+            "@babel/core": "^7.24.6",
+            "@babel/plugin-transform-modules-commonjs": "^7.24.6",
+            "@babel/register": "^7.24.6",
+
             ...externalDependencies,
           },
         });
 
         __PACKAGE_JSON(logger, packageJson);
         await writeFile(join(outdir, 'package.json'), JSON.stringify(packageJson, null, 2));
+        await writeFile(join(outdir, '.babelrc'), JSON.stringify({
+          "compact": false,
+          "plugins": ["@babel/plugin-transform-modules-commonjs"]
+        }, null, 2));
       });
     },
   };

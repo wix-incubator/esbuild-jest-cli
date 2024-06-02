@@ -2,7 +2,6 @@ import merge from 'lodash.merge';
 import { build as esbuild } from 'esbuild';
 
 import esbuildJest from './plugin.mjs';
-import {ESM_REQUIRE_SHIM} from "./utils/esm-require-shim.mjs";
 import {isBuiltinReporter} from "./utils/is-builtin-reporter.mjs";
 import {JEST_DEPENDENCIES} from "./utils/jest-dependencies.mjs";
 import {logger, optimizedLogger, optimizeTracing} from "./utils/logger.mjs";
@@ -89,10 +88,6 @@ export async function build(esbuildJestConfig = {}) {
     metafile: true,
     external: externalModules,
     outbase: rootDir,
-    banner: {
-      js: ESM_REQUIRE_SHIM,
-    },
-
     format: 'esm',
 
     entryPoints,
