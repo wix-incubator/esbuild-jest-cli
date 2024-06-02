@@ -1,7 +1,7 @@
-import { readFile, writeFile } from 'node:fs/promises';
-import { sep, join, relative, resolve } from 'node:path';
+import { writeFile } from 'node:fs/promises';
+import { sep, join, resolve } from 'node:path';
 import importFrom from 'import-from';
-import { logger, optimizedLogger, optimizeTracing } from "./utils/logger.mjs";
+import { logger, optimizeTracing } from "./utils/logger.mjs";
 import { convertPathToImport } from "./utils/resolve-module.mjs";
 import { isBuiltinReporter } from "./utils/is-builtin-reporter.mjs";
 import { mapSourceToOutputFiles } from "./utils/map-inputs-outputs.mjs";
@@ -9,7 +9,7 @@ import { moveJsFile } from "./utils/move-js-file.mjs";
 import { pruneDirectory } from "./utils/prune-directory.mjs";
 import { JEST_DEPENDENCIES } from "./utils/jest-dependencies.mjs";
 
-const passThrough = (filePath, fileContents) => fileContents;
+const noop = () => {};
 
 const __CONTENT = optimizeTracing((log, content, message) => log.trace(
   typeof content === 'object'
@@ -18,16 +18,6 @@ const __CONTENT = optimizeTracing((log, content, message) => log.trace(
   message
 ));
 
-const __DIFF = optimizeTracing((log, before, after, message) => {
-  if (before !== after) {
-    __CONTENT(log, after, message);
-  }
-});
-
-const __READ = (log, content) => __CONTENT(log, content, 'read file');
-const __PREPROCESS = (log, before, after) => __DIFF(log, before, after, 'pre-process file');
-const __TRANSFORM = (log, content) => __CONTENT(log, content, 'transform file');
-const __POSTPROCESS = (log, before, after) => __DIFF(log, before, after, 'post-process file');
 const __FILE_MAPPING_CREATING = (log, input) => __CONTENT(log, input, 'creating file mapping');
 const __FILE_MAPPING_CREATED = (log, input) => __CONTENT(log, input, 'created file mapping');
 const __JEST_CONFIG = (log, config) => __CONTENT(log, config, 'create jest config');
@@ -38,8 +28,7 @@ export default ({
   globalConfig,
   projectConfig,
   tests,
-  preTransform = passThrough,
-  postTransform = passThrough,
+  useTransformer = noop,
 }) => {
   return {
     name: 'jest',
@@ -51,25 +40,9 @@ export default ({
       const { createScriptTransformer } = importFrom(rootDir, '@jest/transform');
       const transformer = await createScriptTransformer(projectConfig);
 
-      build.onLoad({ filter: /.*/ }, async (args) => {
-        const log = optimizedLogger.child({ tid: ['jest-transform', args.path] });
-
-        return log.trace.complete(relative(rootDir, args.path), async () => {
-          const fileContent = await readFile(args.path, 'utf8');
-          __READ(log, fileContent);
-
-          const preprocessed = preTransform(args.path, fileContent);
-          __PREPROCESS(log, fileContent, preprocessed);
-
-          const { code: transformed } =  transformer.transformSource(args.path, preprocessed, {});
-          __TRANSFORM(log, transformed);
-
-          const contents = postTransform(args.path, transformed);
-          __POSTPROCESS(log, transformed, contents);
-
-          const loader = args.path.endsWith('.json') ? 'json' : 'js';
-          return { contents, loader };
-        });
+      await useTransformer({
+        build,
+        transformer,
       });
 
       build.onEnd(async (result) => {

@@ -17,6 +17,7 @@ const __IS_EXTERNAL__ = optimizeTracing((id, external) => {
   optimizedLogger.trace(`mark as ${external ? 'external' : 'internal'}: ${id}`);
 });
 
+/** @param {import('esbuild-jest-cli').ESBuildJestConfig} esbuildJestConfig */
 export async function build(esbuildJestConfig = {}) {
   const rootDir = process.cwd();
 
@@ -101,8 +102,7 @@ export async function build(esbuildJestConfig = {}) {
         projectConfig,
         tests: tests.map(t => t.path),
         package: wrapPackageMiddleware(esbuildJestConfig.package),
-        preTransform: esbuildJestConfig.preTransform,
-        postTransform: esbuildJestConfig.postTransform,
+        useTransformer: esbuildJestConfig.useTransformer,
       }),
       ...(esbuildBaseConfig.plugins || []),
     ],

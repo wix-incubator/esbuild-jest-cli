@@ -1,4 +1,5 @@
-import type {BuildOptions} from 'esbuild';
+import type { PluginBuild, BuildOptions } from 'esbuild';
+import type { ScriptTransformer } from '@jest/transform';
 
 export type ESBuildJestConfig = {
   esbuild: Omit<
@@ -12,7 +13,7 @@ export type ESBuildJestConfig = {
     | 'entryPoints'
   >;
   package: Record<string, unknown> | ((base: Record<string, unknown>) => Record<string, unknown>);
-  preTransform: (filePath: string, fileContent: string) => string;
+  useTransformer: (context: { build: PluginBuild; transformer: ScriptTransformer; }) => void | Promise<void>;
   postTransform: (filePath: string, fileContent: string) => string;
 };
 
