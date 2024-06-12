@@ -1,5 +1,5 @@
 import { writeFile } from 'node:fs/promises';
-import { sep, join, resolve } from 'node:path';
+import { sep, join, relative, resolve } from 'node:path';
 import importFrom from 'import-from';
 import { logger, optimizeTracing } from "./utils/logger.mjs";
 import { convertPathToImport } from "./utils/resolve-module.mjs";
@@ -102,13 +102,9 @@ export default ({
         }
 
         function redirectExternalModule(modulePath) {
+          let replacements = 0;
           const segments = modulePath.split(sep);
-          const nodeModulesIndex = segments.indexOf('node_modules');
-          if (nodeModulesIndex < 0) {
-            return modulePath;
-          }
-
-          return [outdir, 'bundled_externals', ...segments.slice(nodeModulesIndex + 1)].join(sep);
+          return segments.map(x => x === 'node_modules' && replacements++ === 0 ? 'bundled_modules' : x).join(sep);
         }
 
         await moveExternalEntryPointsBackToRoot();
