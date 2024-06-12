@@ -1,7 +1,7 @@
 import path from 'node:path';
 
 export function mapSourceToOutputFiles({ rootDir, outdir, sourceFiles, outputFiles }) {
-  const sourceMap = sourceFiles.reduce((acc, rawSourceFile) => {
+  const sourcesMap = sourceFiles.reduce((acc, rawSourceFile) => {
     const sourceFile = path.relative(rootDir, rawSourceFile);
     const sourceFileParts = sourceFile.split('.');
     const sourceFileBase = sourceFileParts.slice(0, -1).join('.');
@@ -9,7 +9,7 @@ export function mapSourceToOutputFiles({ rootDir, outdir, sourceFiles, outputFil
     return acc;
   }, {});
 
-  const outputMap = outputFiles.reduce((acc, rawOutputFile) => {
+  const outputsMap = outputFiles.reduce((acc, rawOutputFile) => {
     const outputFile = path.relative(outdir, rawOutputFile);
     const outputFileParts = outputFile.split('.');
     const outputFileBase = adaptTwoDots(outputFileParts.slice(0, -1).join('.'));
@@ -18,10 +18,10 @@ export function mapSourceToOutputFiles({ rootDir, outdir, sourceFiles, outputFil
   }, {});
 
   const result = {};
-  for (const key of Object.keys(sourceMap)) {
-    if (outputMap[key]) {
-      const sourcePath = path.resolve(sourceMap[key]);
-      const outputPath = path.resolve(outputMap[key]);
+  for (const key of Object.keys(sourcesMap)) {
+    if (outputsMap[key]) {
+      const sourcePath = path.resolve(sourcesMap[key]);
+      const outputPath = path.resolve(outputsMap[key]);
       result[sourcePath] = outputPath;
     }
   }
