@@ -89,6 +89,25 @@ export default ({
             : mapSingleReporter(reporter);
         }
 
+        /** @param {string} testRunner */
+        function mapTestRunner(testRunner) {
+          if (testRunner) {
+            const segments = testRunner.split(sep);
+            const circusIndex = segments.indexOf('jest-circus');
+            const jasmine2Index = segments.indexOf('jest-jasmine2');
+
+            if (circusIndex > 0 && segments[circusIndex - 1] === 'node_modules') {
+              return 'jest-circus/runner';
+            }
+
+            if (jasmine2Index > 0 && segments[jasmine2Index - 1] === 'node_modules') {
+              return 'jest-jasmine2';
+            }
+          }
+
+          return testRunner;
+        }
+
         async function moveExternalEntryPointsBackToRoot() {
           for (const [input, output] of Object.entries(mapping)) {
             const newPath = redirectExternalModule(output);
@@ -130,7 +149,7 @@ export default ({
           setupFilesAfterEnv: projectConfig.setupFilesAfterEnv.map(mapFile),
           testEnvironment: mapFile(projectConfig.testEnvironment),
           testMatch: tests.map(mapFile),
-          testRunner: mapFile(projectConfig.testRunner),
+          testRunner: mapTestRunner(mapFile(projectConfig.testRunner)),
           transform: undefined,
           transformIgnorePatterns: undefined,
         };
