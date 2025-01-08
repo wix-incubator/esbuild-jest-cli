@@ -29,6 +29,15 @@ export function mapSourceToOutputFiles({ rootDir, outdir, sourceFiles, outputFil
   return result;
 }
 
+export function relativizeEntries(rootDirs, mapping) {
+  return Object.fromEntries(
+    Object.entries(mapping).map(([source, output]) => [
+      path.relative(rootDirs[0], source),
+      path.relative(rootDirs[1], output),
+    ]),
+  );
+}
+
 function adaptTwoDots(filePath) {
   const segments = filePath.split(path.sep);
   return segments.map(convertTwoDots).join(path.sep);
@@ -36,5 +45,4 @@ function adaptTwoDots(filePath) {
 
 function convertTwoDots(segment) {
   return segment === '_.._' ? '..' : segment;
-
 }

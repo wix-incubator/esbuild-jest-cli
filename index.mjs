@@ -96,7 +96,9 @@ export async function build(esbuildJestConfig = {}) {
         globalConfig,
         projectConfig,
         tests: tests.map(t => t.path),
-        package: wrapPackageMiddleware(esbuildJestConfig.package),
+        jestConfig: wrapPatcherMiddleware(esbuildJestConfig.jestConfig),
+        package: wrapPatcherMiddleware(esbuildJestConfig.package),
+        writeMetafile: esbuildBaseConfig.metafile,
         useTransformer: esbuildJestConfig.useTransformer,
       }),
       ...(esbuildBaseConfig.plugins || []),
@@ -108,7 +110,7 @@ export async function build(esbuildJestConfig = {}) {
   return buildResult;
 }
 
-function wrapPackageMiddleware(config) {
+function wrapPatcherMiddleware(config) {
   return typeof config === 'function' ? config : createPackageMerger(config)
 }
 

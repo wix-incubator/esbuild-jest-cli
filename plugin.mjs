@@ -1,13 +1,13 @@
-import { writeFile } from 'node:fs/promises';
-import { sep, join, relative, resolve } from 'node:path';
+import {writeFile} from 'node:fs/promises';
+import {join, resolve, sep} from 'node:path';
 import importFrom from 'import-from';
-import { logger, optimizeTracing } from "./utils/logger.mjs";
-import { convertPathToImport } from "./utils/resolve-module.mjs";
-import { isBuiltinReporter } from "./utils/is-builtin-reporter.mjs";
-import { mapSourceToOutputFiles } from "./utils/map-inputs-outputs.mjs";
-import { moveJsFile } from "./utils/move-js-file.mjs";
-import { pruneDirectory } from "./utils/prune-directory.mjs";
-import { JEST_DEPENDENCIES } from "./utils/jest-dependencies.mjs";
+import {logger, optimizeTracing} from "./utils/logger.mjs";
+import {convertPathToImport} from "./utils/resolve-module.mjs";
+import {isBuiltinReporter} from "./utils/is-builtin-reporter.mjs";
+import {mapSourceToOutputFiles, relativizeEntries} from "./utils/map-inputs-outputs.mjs";
+import {moveJsFile} from "./utils/move-js-file.mjs";
+import {pruneDirectory} from "./utils/prune-directory.mjs";
+import {JEST_DEPENDENCIES} from "./utils/jest-dependencies.mjs";
 
 const noop = () => {};
 
@@ -24,11 +24,13 @@ const __JEST_CONFIG = (log, config) => __CONTENT(log, config, 'create jest confi
 const __PACKAGE_JSON = (log, packageJson) => __CONTENT(log, packageJson, 'create package.json');
 
 export default ({
+  jestConfig: jestConfigMiddleware,
   package: packageMiddleware,
   globalConfig,
   projectConfig,
   tests,
   useTransformer = noop,
+  writeMetafile = false,
 }) => {
   return {
     name: 'jest',
@@ -55,7 +57,46 @@ export default ({
 
         __FILE_MAPPING_CREATING(logger, mappingInput);
         const mapping = mapSourceToOutputFiles(mappingInput);
+        await moveExternalEntryPointsBackToRoot(mapping);
+        await pruneDirectory(join(outdir, 'node_modules'));
         __FILE_MAPPING_CREATED(logger, mapping);
+        const flattenedConfig = jestConfigMiddleware({
+          maxWorkers: globalConfig.maxWorkers,
+          testTimeout: globalConfig.testTimeout,
+          reporters: globalConfig.reporters.map(mapReporter),
+
+          ...projectConfig,
+          cacheDirectory: undefined,
+          cwd: undefined,
+          coverageDirectory: mapFile(projectConfig.coverageDirectory),
+          globalSetup: mapFile(projectConfig.globalSetup),
+          globalTeardown: mapFile(projectConfig.globalTeardown),
+          id: undefined,
+          moduleNameMapper: undefined,
+          rootDir: undefined,
+          roots: undefined,
+          runner: undefined,
+          setupFiles: projectConfig.setupFiles.map(mapFile),
+          setupFilesAfterEnv: projectConfig.setupFilesAfterEnv.map(mapFile),
+          testEnvironment: mapFile(projectConfig.testEnvironment),
+          testMatch: tests.map(mapFile),
+          testRunner: mapTestRunner(mapFile(projectConfig.testRunner)),
+          transform: {
+            '^(?!node_modules/).+\\.js$': '@swc/jest',
+            '^.+\\.jsx$': '@swc/jest',
+            '^.+\\.tsx?$': '@swc/jest',
+          },
+          transformIgnorePatterns: [],
+        });
+        __JEST_CONFIG(logger, flattenedConfig);
+        await writeFile(join(outdir, 'jest.config.json'), JSON.stringify(flattenedConfig, null, 2));
+
+        if (writeMetafile) {
+          await writeFile(join(outdir, 'metafile.json'), JSON.stringify({
+            ...result.metafile,
+            mapping: relativizeEntries([rootDir, outdir], mapping),
+          }, null, 2) + '\n');
+        }
 
         /**
          * @param {string} file
@@ -125,37 +166,6 @@ export default ({
           const segments = modulePath.split(sep);
           return segments.map(x => x === 'node_modules' && replacements++ === 0 ? 'bundled_modules' : x).join(sep);
         }
-
-        await moveExternalEntryPointsBackToRoot();
-        await pruneDirectory(join(outdir, 'node_modules'));
-
-        const flattenedConfig = {
-          maxWorkers: globalConfig.maxWorkers,
-          testTimeout: globalConfig.testTimeout,
-          reporters: globalConfig.reporters.map(mapReporter),
-
-          ...projectConfig,
-          cacheDirectory: undefined,
-          cwd: undefined,
-          coverageDirectory: mapFile(projectConfig.coverageDirectory),
-          globalSetup: mapFile(projectConfig.globalSetup),
-          globalTeardown: mapFile(projectConfig.globalTeardown),
-          id: undefined,
-          moduleNameMapper: undefined,
-          rootDir: undefined,
-          roots: undefined,
-          runner: undefined,
-          setupFiles: projectConfig.setupFiles.map(mapFile),
-          setupFilesAfterEnv: projectConfig.setupFilesAfterEnv.map(mapFile),
-          testEnvironment: mapFile(projectConfig.testEnvironment),
-          testMatch: tests.map(mapFile),
-          testRunner: mapTestRunner(mapFile(projectConfig.testRunner)),
-          transform: undefined,
-          transformIgnorePatterns: undefined,
-        };
-
-        __JEST_CONFIG(logger, flattenedConfig);
-        await writeFile(join(outdir, 'jest.config.json'), JSON.stringify(flattenedConfig, null, 2));
       });
 
       build.onEnd(async (result) => {
@@ -175,12 +185,12 @@ export default ({
           version: '0.0.0',
           private: true,
           scripts: {
-            test: "NODE_OPTIONS='-r @babel/register' jest"
+            test: "NODE_OPTIONS='-r @swc-node/register' jest"
           },
           dependencies: {
-            "@babel/core": "^7.24.6",
-            "@babel/plugin-transform-modules-commonjs": "^7.24.6",
-            "@babel/register": "^7.24.6",
+            "@swc/core": "^1.10.1",
+            "@swc/jest": "^0.2.37",
+            "@swc-node/register": "^1.10.9",
 
             ...externalDependencies,
           },
