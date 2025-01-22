@@ -82,9 +82,8 @@ export default ({
           testMatch: tests.map(mapFile),
           testRunner: mapTestRunner(mapFile(projectConfig.testRunner)),
           transform: {
-            '^(?!node_modules/).+\\.js$': '@swc/jest',
-            '^.+\\.jsx$': '@swc/jest',
-            '^.+\\.tsx?$': '@swc/jest',
+            '^(?!.*node_modules/).+\\.js$': '@swc/jest',
+            '^.+\\.(jsx|tsx?)$': '@swc/jest',
           },
           transformIgnorePatterns: [],
         });
