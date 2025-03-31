@@ -13,9 +13,10 @@ export type ESBuildJestConfig = {
     | 'entryPoints'
   >;
   jestConfig: JestConfig.InitialOptions | ((base: JestConfig.InitialOptions) => JestConfig.InitialOptions);
+  metafile: boolean;
   package: Record<string, unknown> | ((base: Record<string, unknown>) => Record<string, unknown>);
-  useTransformer: (context: { build: PluginBuild; transformer: ScriptTransformer; }) => void | Promise<void>;
   postTransform: (filePath: string, fileContent: string) => string;
+  useTransformer: (context: { build: PluginBuild; transformer: ScriptTransformer; }) => void | Promise<void>;
 };
 
 export declare const build: (config: Partial<ESBuildJestConfig>) => Promise<void>;
