@@ -94,7 +94,7 @@ export default ({
           await writeFile(join(outdir, 'metafile.json'), JSON.stringify({
             ...result.metafile,
             mapping: relativizeEntries([rootDir, outdir], mapping),
-          }, null, 2) + '\n');
+          }) + '\n');
         }
 
         /**
