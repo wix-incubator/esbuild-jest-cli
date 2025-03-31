@@ -98,7 +98,7 @@ export async function build(esbuildJestConfig = {}) {
         tests: tests.map(t => t.path),
         jestConfig: wrapPatcherMiddleware(esbuildJestConfig.jestConfig),
         package: wrapPatcherMiddleware(esbuildJestConfig.package),
-        writeMetafile: esbuildBaseConfig.metafile,
+        writeMetafile: esbuildJestConfig.metafile,
         useTransformer: esbuildJestConfig.useTransformer,
       }),
       ...(esbuildBaseConfig.plugins || []),
